@@ -1,6 +1,4 @@
-// server.js
-
-require('dotenv').config(); // Load environment variables
+// require('dotenv').config(); // Load environment variables
 
 const express = require('express');
 const mongoose = require('mongoose');
@@ -15,7 +13,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // MongoDB Connection
-const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/Sahayata';
+const mongoURI =  'mongodb+srv://rohitkuttum321:rizwzj2mSCJAYaQQ@sahayatadb.w92ii.mongodb.net/';
 mongoose.connect(mongoURI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -55,6 +53,30 @@ const donationSchema = new mongoose.Schema({
 
 const Donation = mongoose.model('Donation', donationSchema);
 
+// Feedback Schema and Model
+const feedbackSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: [true, 'Name is required'],
+    },
+    feedback: {
+        type: String,
+        required: [true, 'Feedback is required'],
+    },
+    stars: {
+        type: Number,
+        required: [true, 'Star rating is required'],
+        min: [1, 'Minimum star rating is 1'],
+        max: [5, 'Maximum star rating is 5'],
+    },
+    date: {
+        type: Date,
+        default: Date.now,
+    },
+});
+
+const Feedback = mongoose.model('Feedback', feedbackSchema);
+
 // POST Route: Submit a Donation
 app.post('/api/donate', async (req, res) => {
     const { name, email, amount, cause } = req.body;
@@ -91,6 +113,41 @@ app.post('/api/donate', async (req, res) => {
     }
 });
 
+// POST Route: Submit Feedback
+app.post('/api/feedback', async (req, res) => {
+    const { name, feedback, stars } = req.body;
+
+    // Validate Request Body
+    if (!name || !feedback || stars === undefined) {
+        return res.status(400).json({ message: 'All fields (name, feedback, stars) are required.' });
+    }
+
+    try {
+        // Create a new Feedback document
+        const newFeedback = new Feedback({
+            name,
+            feedback,
+            stars,
+        });
+
+        // Save to MongoDB
+        const savedFeedback = await newFeedback.save();
+
+        res.status(201).json({
+            message: 'Feedback submitted successfully!',
+            feedback: savedFeedback,
+        });
+    } catch (error) {
+        console.error('Error saving feedback:', error);
+        // Handle validation errors
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ message: messages.join('. ') });
+        }
+        res.status(500).json({ message: 'Server Error: Unable to process feedback.' });
+    }
+});
+
 // GET Route: Get Total Donations
 app.get('/api/donations/total', async (req, res) => {
     try {
@@ -111,6 +168,8 @@ app.get('/api/donations/total', async (req, res) => {
         res.status(500).json({ message: 'Server Error: Unable to fetch total donations.' });
     }
 });
+
+// GET Route: Get Last 5 Donations
 app.get('/api/donations/last-5', async (req, res) => {
     try {
         // Find the last 5 donations, sorted by date in descending order
