@@ -230,10 +230,10 @@ app.get('/api/donations', async (req, res) => {
 
 // Default Route
 app.get('/', (req, res) => {
-    res.send('Donation API is running.');
+    res.send('Donations Api Route is Running');
 });
 
 // Start the Server
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server is Online`);
 });
